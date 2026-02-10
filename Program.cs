@@ -101,33 +101,53 @@ class Program
                     );
                 }
 
-                var response = await Http.Send(httpClient, request);
-
-                // Optional status code validation: mark unexpected codes as failures
-                if (cfg.ExpectedStatusCode.HasValue)
+                // Execute the request with a configurable timeout.
+                // Timeouts are tagged with "TIMEOUT" status code so they appear as a
+                // distinct category in reports, separate from HTTP 5xx or connection errors.
+                try
                 {
-                    var actualCode = response.StatusCode;
-                    var expectedStr = cfg.ExpectedStatusCode.Value.ToString();
+                    // WaitAsync enforces the per-request timeout from config.
+                    // If the request exceeds TimeoutMs, a TimeoutException is thrown.
+                    var response = await Http.Send(httpClient, request)
+                        .WaitAsync(TimeSpan.FromMilliseconds(cfg.TimeoutMs));
 
-                    if (actualCode != expectedStr
-                        && actualCode != ((HttpStatusCode)cfg.ExpectedStatusCode.Value).ToString())
+                    // Optional status code validation: mark unexpected codes as failures
+                    if (cfg.ExpectedStatusCode.HasValue)
                     {
-                        return Response.Fail(
-                            statusCode: actualCode,
-                            message: $"Expected status {cfg.ExpectedStatusCode}, got {actualCode}",
-                            sizeBytes: response.SizeBytes
-                        );
+                        var actualCode = response.StatusCode;
+                        var expectedStr = cfg.ExpectedStatusCode.Value.ToString();
+
+                        if (actualCode != expectedStr
+                            && actualCode != ((HttpStatusCode)cfg.ExpectedStatusCode.Value).ToString())
+                        {
+                            return Response.Fail(
+                                statusCode: actualCode,
+                                message: $"Expected status {cfg.ExpectedStatusCode}, got {actualCode}",
+                                sizeBytes: response.SizeBytes
+                            );
+                        }
                     }
+
+                    context.Logger.Debug(
+                        "Scenario={Scenario} Step={Step} Invocation={Invocation} StatusCode={StatusCode}",
+                        scenarioName, stepName, context.InvocationNumber, response.StatusCode);
+
+                    return Response.Ok(
+                        statusCode: response.StatusCode,
+                        sizeBytes: response.SizeBytes
+                    );
                 }
+                catch (Exception ex) when (ex is TimeoutException or TaskCanceledException or OperationCanceledException)
+                {
+                    context.Logger.Warning(
+                        "TIMEOUT: Scenario={Scenario} Step={Step} Invocation={Invocation} TimeoutMs={TimeoutMs}",
+                        scenarioName, stepName, context.InvocationNumber, cfg.TimeoutMs);
 
-                context.Logger.Debug(
-                    "Scenario={Scenario} Step={Step} Invocation={Invocation} StatusCode={StatusCode}",
-                    scenarioName, stepName, context.InvocationNumber, response.StatusCode);
-
-                return Response.Ok(
-                    statusCode: response.StatusCode,
-                    sizeBytes: response.SizeBytes
-                );
+                    return Response.Fail(
+                        statusCode: "TIMEOUT",
+                        message: $"Request timed out after {cfg.TimeoutMs}ms"
+                    );
+                }
             });
 
             return step;

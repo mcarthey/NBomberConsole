@@ -24,6 +24,7 @@ Each scenario in the config has a `CustomSettings` block that defines:
 | `JsonBody` | Optional JSON body (POST/PUT) | `{ "name": "test" }` |
 | `StepName` | Optional friendly name for reports | `"create_user"` |
 | `ExpectedStatusCode` | Optional validation | `200`, `201` |
+| `TimeoutMs` | Request timeout in milliseconds (default: 30000) | `5000`, `60000` |
 
 ## Configuration Guide
 
@@ -45,10 +46,34 @@ Edit `nbomber-config.json` and update the `CustomSettings` for each scenario:
 
 ### Adjusting Load Profile
 
-Modify `LoadSimulationsSettings` for each scenario:
+Modify `LoadSimulationsSettings` for each scenario. Simulations are chained in order — combine them to create any traffic pattern.
 
-- **RampingInject**: Gradually increase request rate — `[rate, interval, duration]`
-- **Inject**: Sustain a constant request rate — `[rate, interval, duration]`
+#### Available Load Simulations
+
+**Open-model simulations** (control request rate — best for HTTP APIs):
+
+| Simulation | JSON Format | Description |
+|-----------|-------------|-------------|
+| `Inject` | `[rate, interval, duration]` | Constant request rate for a duration |
+| `RampingInject` | `[rate, interval, duration]` | Linear ramp to target rate over duration |
+| `InjectRandom` | `[minRate, maxRate, interval, duration]` | Random rate within a range — simulates unpredictable traffic |
+| `IterationsForInject` | `[rate, interval, maxIterations]` | Constant rate until iteration count is reached |
+
+**Closed-model simulations** (control concurrent users — best for persistent connections):
+
+| Simulation | JSON Format | Description |
+|-----------|-------------|-------------|
+| `KeepConstant` | `[copies, duration]` | Fixed number of concurrent virtual users |
+| `RampingConstant` | `[copies, duration]` | Linear ramp of concurrent virtual users |
+| `IterationsForConstant` | `[copies, maxIterations]` | Fixed users until iteration count is reached |
+
+**Control simulation:**
+
+| Simulation | JSON Format | Description |
+|-----------|-------------|-------------|
+| `Pause` | `"duration"` | Zero traffic — idle period between phases |
+
+#### Basic Example
 
 ```json
 "LoadSimulationsSettings": [
@@ -57,12 +82,46 @@ Modify `LoadSimulationsSettings` for each scenario:
 ]
 ```
 
-For the 40,000+ requests/hour production target:
+#### Production Target: 40,000+ Requests/Hour
+
 ```json
-{ "RampingInject": [ 12, "00:00:01", "00:05:00" ] },
-{ "Inject": [ 12, "00:00:01", "00:55:00" ] }
+"LoadSimulationsSettings": [
+  { "RampingInject": [ 12, "00:00:01", "00:05:00" ] },
+  { "Inject": [ 12, "00:00:01", "00:55:00" ] }
+]
 ```
 (12 req/sec * 3,600 sec = 43,200 requests/hour)
+
+#### Stress Test: Emergency Mode Surge Pattern
+
+Simulates a system that runs idle, then experiences sudden emergency-level traffic spikes to identify the breaking point:
+
+```json
+"LoadSimulationsSettings": [
+  { "Inject": [ 2, "00:00:01", "00:05:00" ] },
+  { "RampingInject": [ 200, "00:00:01", "00:00:30" ] },
+  { "Inject": [ 200, "00:00:01", "00:02:00" ] },
+  { "RampingInject": [ 2, "00:00:01", "00:00:30" ] },
+  { "Pause": "00:01:00" },
+  { "InjectRandom": [ 5, 100, "00:00:01", "00:03:00" ] },
+  { "Pause": "00:00:30" },
+  { "RampingInject": [ 500, "00:00:01", "00:02:00" ] },
+  { "Inject": [ 500, "00:00:01", "00:05:00" ] }
+]
+```
+
+This chains the following phases:
+1. **Idle** — 2 req/s for 5 minutes (normal baseline)
+2. **Spike** — ramp to 200 req/s over 30 seconds
+3. **Sustained spike** — hold 200 req/s for 2 minutes
+4. **Recovery** — ramp back down to 2 req/s
+5. **Silence** — complete pause for 1 minute
+6. **Random chaos** — unpredictable 5-100 req/s for 3 minutes
+7. **Brief pause** — 30 seconds
+8. **Extreme surge** — ramp to 500 req/s over 2 minutes
+9. **Sustained extreme** — hold 500 req/s for 5 minutes (find the breaking point)
+
+The HTML report will show exactly where latency degrades and failures begin.
 
 ### Scenario Execution Patterns
 

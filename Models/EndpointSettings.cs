@@ -25,4 +25,12 @@ public sealed class EndpointSettings
     /// Responses with different codes are marked as failures.
     /// </summary>
     public int? ExpectedStatusCode { get; set; }
+
+    /// <summary>
+    /// Optional request timeout in milliseconds.
+    /// Timeouts are tagged with status code "TIMEOUT" in reports so they
+    /// appear as a distinct category separate from HTTP errors.
+    /// Default: 30000 (30 seconds).
+    /// </summary>
+    public int TimeoutMs { get; set; } = 30000;
 }
