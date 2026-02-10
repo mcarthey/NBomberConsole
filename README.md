@@ -277,6 +277,8 @@ Each threshold entry can also include:
 | `AbortWhenErrorCount` | Stop the test if this threshold fails N times | `"AbortWhenErrorCount": 10` |
 | `StartCheckAfter` | Delay threshold checks (skip warmup noise) | `"StartCheckAfter": "00:00:15"` |
 
+> **Note on ramp-up failures:** Thresholds are checked at every `ReportingInterval` (default 10s) **during** the test, not just at the end. If a scenario uses `RampingInject`, RPS will be low during the initial ramp and may fail RPS thresholds in the first few intervals. Use `StartCheckAfter` to skip checks during warmup/ramp periods. In the included config, `post_scenario` intentionally omits `StartCheckAfter` on its RPS threshold so the ramp-up failures are visible in reports — this is useful for understanding threshold timing. To suppress these, add `"StartCheckAfter": "00:00:35"` (warmup + ramp duration).
+
 #### Full Threshold Example
 
 ```json
