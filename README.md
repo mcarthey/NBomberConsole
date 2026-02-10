@@ -208,57 +208,61 @@ Thresholds define pass/fail criteria that are evaluated during and after the tes
 
 #### Threshold Types
 
-| Type | Description | Applies To |
-|------|-------------|------------|
-| `OkRequest` | Assertions on successful requests | Request count, RPS, % of total |
-| `FailRequest` | Assertions on failed requests | Request count, RPS, % of total |
-| `OkLatency` | Assertions on response time for OK requests | Percentiles and min/mean/max (ms) |
-| `FailLatency` | Assertions on response time for failed requests | Percentiles and min/mean/max (ms) |
-| `OkDataTransfer` | Assertions on payload size for OK requests | Percentiles and min/mean/max (bytes) |
-| `FailDataTransfer` | Assertions on payload size for failed requests | Percentiles and min/mean/max (bytes) |
-| `StatusCode` | Assertions on a specific HTTP status code | `["code", "metric operator value"]` |
+| Type | Description | Equivalent To |
+|------|-------------|---------------|
+| `OkRequest` | Assertions on successful requests | `stats.Ok.Request` |
+| `FailRequest` | Assertions on failed requests | `stats.Fail.Request` |
+| `OkLatency` | Assertions on response time for OK requests | `stats.Ok.Latency` |
+| `OkDataTransfer` | Assertions on payload size for OK requests | `stats.Ok.DataTransfer` |
+| `StatusCode` | Assertions on a specific HTTP status code | `stats.Ok.StatusCode` / `stats.Fail.StatusCode` |
 
-#### Available Metrics per Type
+#### Available Metrics
 
-**Request metrics** (`OkRequest`, `FailRequest`):
+All threshold types share the same metric names. Not all metrics apply to every type — use the ones that make sense for the category.
 
-| Metric | Description | Example |
-|--------|-------------|---------|
-| `RPS` | Requests per second | `"RPS >= 30"` |
-| `Percent` | Percentage of total requests | `"Percent > 90"` |
+| Metric | Description | Typical Use |
+|--------|-------------|-------------|
+| `RPS` | Requests per second | `OkRequest`, `FailRequest` |
+| `Percent` | Percentage of total | `OkRequest`, `FailRequest`, `StatusCode` |
+| `Min` | Minimum value | `OkLatency` (ms), `OkDataTransfer` (bytes) |
+| `Mean` | Average value | `OkLatency` (ms), `OkDataTransfer` (bytes) |
+| `Max` | Maximum value | `OkLatency` (ms), `OkDataTransfer` (bytes) |
+| `P50` | 50th percentile (median) | `OkLatency` (ms), `OkDataTransfer` (bytes) |
+| `P75` | 75th percentile | `OkLatency` (ms), `OkDataTransfer` (bytes) |
+| `P95` | 95th percentile | `OkLatency` (ms), `OkDataTransfer` (bytes) |
+| `P99` | 99th percentile | `OkLatency` (ms), `OkDataTransfer` (bytes) |
 
-**Latency metrics** (`OkLatency`, `FailLatency`) — all values in milliseconds:
+> **Source:** [NBomber Asserts & Thresholds](https://nbomber.com/docs/nbomber/asserts_and_thresholds/)
 
-| Metric | Description | Example |
-|--------|-------------|---------|
-| `min` | Minimum response time | `"min < 50"` |
-| `mean` | Average response time | `"mean < 200"` |
-| `max` | Maximum response time | `"max < 3000"` |
-| `p50` | 50th percentile (median) | `"p50 < 100"` |
-| `p75` | 75th percentile | `"p75 < 300"` |
-| `p95` | 95th percentile | `"p95 < 1000"` |
-| `p99` | 99th percentile | `"p99 < 2000"` |
-| `stddev` | Standard deviation | `"stddev < 150"` |
+#### Examples by Type
 
-**Data transfer metrics** (`OkDataTransfer`, `FailDataTransfer`) — all values in bytes:
+**Request thresholds** (`OkRequest`, `FailRequest`):
+```
+{ "OkRequest": "RPS >= 30" }
+{ "OkRequest": "Percent > 90" }
+{ "FailRequest": "Percent < 10" }
+```
 
-| Metric | Description | Example |
-|--------|-------------|---------|
-| `min` | Minimum payload size | `"min > 0"` |
-| `mean` | Average payload size | `"mean < 5000"` |
-| `max` | Maximum payload size | `"max < 50000"` |
-| `p50` | 50th percentile | `"p50 < 1000"` |
-| `p75` | 75th percentile | `"p75 < 200"` |
-| `p95` | 95th percentile | `"p95 < 5000"` |
-| `p99` | 99th percentile | `"p99 < 10000"` |
-| `AllBytes` | Total bytes transferred | `"AllBytes >= 1000000"` |
+**Latency thresholds** (`OkLatency`) — values in milliseconds:
+```
+{ "OkLatency": "Max < 2000" }
+{ "OkLatency": "P75 < 500" }
+{ "OkLatency": "P95 < 1000" }
+{ "OkLatency": "P99 < 1500" }
+```
 
-**Status code metrics** (`StatusCode`) — first element is the HTTP status code, second is the assertion:
+**Data transfer thresholds** (`OkDataTransfer`) — values in bytes:
+```
+{ "OkDataTransfer": "Min > 0" }
+{ "OkDataTransfer": "P75 < 200" }
+{ "OkDataTransfer": "P95 < 5000" }
+```
 
-| Metric | Description | Example |
-|--------|-------------|---------|
-| `Percent` | Percentage of total requests with this code | `["500", "Percent < 5"]` |
-| `Count` | Total number of responses with this code | `["200", "Count >= 100"]` |
+**Status code thresholds** (`StatusCode`) — first element is the HTTP status code, second is the assertion:
+```
+{ "StatusCode": [ "500", "Percent < 5" ] }
+{ "StatusCode": [ "200", "Percent >= 90" ] }
+```
 
 #### Comparison Operators
 

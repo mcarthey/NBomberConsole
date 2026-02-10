@@ -132,13 +132,11 @@
           { "OkLatency": "p75 < 300" },
           { "OkLatency": "p95 < 1000" },
           { "OkLatency": "p99 < 2000" },
-          { "OkLatency": "stddev < 150" },
 
           { "OkDataTransfer": "min > 0" },
           { "OkDataTransfer": "mean < 5000" },
           { "OkDataTransfer": "p75 < 200" },
           { "OkDataTransfer": "p95 < 5000" },
-          { "OkDataTransfer": "AllBytes >= 1000000" },
 
           {
             "StatusCode": [ "200", "Percent >= 80" ],
