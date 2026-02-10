@@ -226,7 +226,6 @@ Thresholds define pass/fail criteria that are evaluated during and after the tes
 |--------|-------------|---------|
 | `RPS` | Requests per second | `"RPS >= 30"` |
 | `Percent` | Percentage of total requests | `"Percent > 90"` |
-| `Count` | Total request count | `"Count >= 1000"` |
 
 **Latency metrics** (`OkLatency`, `FailLatency`) — all values in milliseconds:
 

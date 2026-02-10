@@ -123,7 +123,6 @@
         "ThresholdSettings": [
           { "OkRequest": "RPS >= 30" },
           { "OkRequest": "Percent > 80" },
-          { "OkRequest": "Count >= 1000" },
           { "FailRequest": "Percent < 20" },
 
           { "OkLatency": "min < 50" },
