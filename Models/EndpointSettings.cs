@@ -1,0 +1,28 @@
+namespace NBomberConsole.Models;
+
+public sealed class EndpointSettings
+{
+    /// <summary>HTTP method: GET, POST, PUT, PATCH, DELETE</summary>
+    public string HttpMethod { get; set; } = "GET";
+
+    /// <summary>Full URL of the endpoint to test</summary>
+    public string Url { get; set; } = string.Empty;
+
+    /// <summary>Optional dictionary of HTTP headers to include</summary>
+    public Dictionary<string, string>? Headers { get; set; }
+
+    /// <summary>
+    /// Optional JSON body for POST/PUT/PATCH requests.
+    /// Stored as a raw JSON object in config; serialized and sent as-is.
+    /// </summary>
+    public object? JsonBody { get; set; }
+
+    /// <summary>Optional friendly name for the step within the scenario</summary>
+    public string? StepName { get; set; }
+
+    /// <summary>
+    /// Optional expected HTTP status code for validation.
+    /// Responses with different codes are marked as failures.
+    /// </summary>
+    public int? ExpectedStatusCode { get; set; }
+}

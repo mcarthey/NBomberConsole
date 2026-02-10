@@ -1,0 +1,18 @@
+{
+  "Serilog": {
+    "MinimumLevel": "Debug",
+    "WriteTo": [
+      {
+        "Name": "File",
+        "Args": {
+          "path": "logs/nbomber-load-test-.log",
+          "rollingInterval": "Day",
+          "retainedFileCountLimit": 30,
+          "outputTemplate": "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{ThreadId}] {Message:lj}{NewLine}{Exception}",
+          "fileSizeLimitBytes": 104857600
+        }
+      }
+    ],
+    "Enrich": [ "FromLogContext", "WithThreadId", "WithMachineName" ]
+  }
+}

@@ -1,0 +1,33 @@
+## .NET build output
+bin/
+obj/
+*.user
+*.suo
+*.cache
+
+## Visual Studio
+.vs/
+
+## VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## Rider
+.idea/
+
+## NuGet
+*.nupkg
+**/packages/*
+
+## NBomber reports (generated output)
+reports/
+
+## Serilog logs (generated output)
+logs/
+
+## OS generated
+.DS_Store
+Thumbs.db
