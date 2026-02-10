@@ -29,13 +29,14 @@ class Program
         // define the HTTP request details (method, URL, headers, body).
         var getScenario = BuildScenario("get_scenario", httpClient);
         var postScenario = BuildScenario("post_scenario", httpClient);
+        var stressTestScenario = BuildScenario("stress_test_scenario", httpClient);
 
         // Extract the target host from the config for PingPlugin.
         // Falls back to a sensible default if config hasn't been customized yet.
         var targetHost = GetTargetHost();
 
         NBomberRunner
-            .RegisterScenarios(getScenario, postScenario)
+            .RegisterScenarios(getScenario, postScenario, stressTestScenario)
             .LoadConfig("nbomber-config.json")
             .LoadInfraConfig("infra-config.json")
             .WithReportFolder($"reports/{runTimestamp}")

@@ -88,6 +88,77 @@
             "StartCheckAfter": "00:00:15"
           }
         ]
+      },
+      {
+        "_comment": "COMPREHENSIVE REFERENCE EXAMPLE: This scenario demonstrates ALL available options. It is NOT listed in TargetScenarios so it won't run by default. To enable it, add 'stress_test_scenario' to the TargetScenarios array.",
+
+        "ScenarioName": "stress_test_scenario",
+        "WarmUpDuration": "00:00:10",
+
+        "LoadSimulationsSettings": [
+          { "Inject": [ 2, "00:00:01", "00:02:00" ] },
+          { "RampingInject": [ 200, "00:00:01", "00:00:30" ] },
+          { "Inject": [ 200, "00:00:01", "00:02:00" ] },
+          { "RampingInject": [ 2, "00:00:01", "00:00:30" ] },
+          { "Pause": "00:01:00" },
+          { "InjectRandom": [ 5, 100, "00:00:01", "00:03:00" ] },
+          { "Pause": "00:00:30" },
+          { "RampingInject": [ 500, "00:00:01", "00:02:00" ] },
+          { "Inject": [ 500, "00:00:01", "00:05:00" ] }
+        ],
+
+        "CustomSettings": {
+          "HttpMethod": "GET",
+          "Url": "https://jsonplaceholder.typicode.com/posts/1",
+          "StepName": "stress_test_get_post",
+          "ExpectedStatusCode": 200,
+          "TimeoutMs": 5000,
+          "Headers": {
+            "Accept": "application/json",
+            "X-Custom-TraceId": "nbomber-stress-test",
+            "X-Request-Priority": "high"
+          }
+        },
+
+        "ThresholdSettings": [
+          { "OkRequest": "RPS >= 30" },
+          { "OkRequest": "Percent > 80" },
+          { "OkRequest": "Count >= 1000" },
+          { "FailRequest": "Percent < 20" },
+
+          { "OkLatency": "min < 50" },
+          { "OkLatency": "mean < 200" },
+          { "OkLatency": "max < 3000" },
+          { "OkLatency": "p50 < 100" },
+          { "OkLatency": "p75 < 300" },
+          { "OkLatency": "p95 < 1000" },
+          { "OkLatency": "p99 < 2000" },
+          { "OkLatency": "stddev < 150" },
+
+          { "OkDataTransfer": "min > 0" },
+          { "OkDataTransfer": "mean < 5000" },
+          { "OkDataTransfer": "p75 < 200" },
+          { "OkDataTransfer": "p95 < 5000" },
+          { "OkDataTransfer": "AllBytes >= 1000000" },
+
+          {
+            "StatusCode": [ "200", "Percent >= 80" ],
+            "AbortWhenErrorCount": 50,
+            "StartCheckAfter": "00:00:30"
+          },
+          {
+            "StatusCode": [ "500", "Percent < 10" ],
+            "AbortWhenErrorCount": 100
+          },
+          {
+            "StatusCode": [ "429", "Percent < 15" ]
+          },
+          {
+            "StatusCode": [ "TIMEOUT", "Percent < 10" ],
+            "AbortWhenErrorCount": 50,
+            "StartCheckAfter": "00:00:30"
+          }
+        ]
       }
     ],
 
