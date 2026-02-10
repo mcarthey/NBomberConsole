@@ -64,6 +64,76 @@ For the 40,000+ requests/hour production target:
 ```
 (12 req/sec * 3,600 sec = 43,200 requests/hour)
 
+### Scenario Execution Patterns
+
+All registered scenarios run **concurrently by default**. Use `Pause` and `TargetScenarios` to control execution order.
+
+#### Concurrent (default)
+
+Both scenarios start and run at the same time:
+
+```json
+"TargetScenarios": [ "get_scenario", "post_scenario" ]
+```
+
+#### Staggered
+
+Use `Pause` at the start of a scenario's load simulation to delay it. This is useful for simulating realistic traffic patterns where different API calls don't all spike at the same instant:
+
+```json
+{
+  "ScenarioName": "get_scenario",
+  "LoadSimulationsSettings": [
+    { "RampingInject": [ 50, "00:00:01", "00:00:30" ] },
+    { "Inject": [ 100, "00:00:01", "00:05:00" ] }
+  ]
+},
+{
+  "ScenarioName": "post_scenario",
+  "LoadSimulationsSettings": [
+    { "Pause": "00:02:00" },
+    { "RampingInject": [ 20, "00:00:01", "00:00:30" ] },
+    { "Inject": [ 50, "00:00:01", "00:05:00" ] }
+  ]
+}
+```
+
+In this example, `get_scenario` starts immediately while `post_scenario` waits 2 minutes before beginning.
+
+#### Serial
+
+Chain pauses so one scenario finishes before the next begins:
+
+```json
+{
+  "ScenarioName": "get_scenario",
+  "LoadSimulationsSettings": [
+    { "RampingInject": [ 50, "00:00:01", "00:01:00" ] },
+    { "Inject": [ 100, "00:00:01", "00:05:00" ] }
+  ]
+},
+{
+  "ScenarioName": "post_scenario",
+  "LoadSimulationsSettings": [
+    { "Pause": "00:06:00" },
+    { "RampingInject": [ 20, "00:00:01", "00:01:00" ] },
+    { "Inject": [ 50, "00:00:01", "00:05:00" ] }
+  ]
+}
+```
+
+Here `post_scenario` pauses for 6 minutes (the total duration of `get_scenario`), effectively running them back-to-back.
+
+#### Run Only Specific Scenarios
+
+Use `TargetScenarios` to selectively enable or disable scenarios without removing their config:
+
+```json
+"TargetScenarios": [ "get_scenario" ]
+```
+
+The `post_scenario` config stays in the file but won't execute. This is handy when teams want to test one endpoint at a time or toggle scenarios on/off between runs.
+
 ### Thresholds
 
 Thresholds define pass/fail criteria that are evaluated during and after the test. Breached thresholds are flagged in reports and can optionally abort the test early.
