@@ -11,6 +11,8 @@
   <ItemGroup>
     <PackageReference Include="NBomber" Version="6.2.0" />
     <PackageReference Include="NBomber.Http" Version="6.1.0" />
+    <PackageReference Include="NBomber.Data" Version="6.1.1" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,6 +20,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="infra-config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="**\*.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

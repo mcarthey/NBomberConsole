@@ -18,12 +18,17 @@
         ],
         "CustomSettings": {
           "HttpMethod": "GET",
-          "Url": "https://jsonplaceholder.typicode.com/posts/1",
+          "Url": "https://jsonplaceholder.typicode.com/posts/{PostId}",
           "StepName": "get_single_post",
           "ExpectedStatusCode": 200,
           "Headers": {
             "Accept": "application/json",
             "X-Custom-TraceId": "nbomber-load-test"
+          },
+          "DataSource": {
+            "Type": "CSV",
+            "FilePath": "test-data.csv",
+            "FeedStrategy": "Random"
           }
         },
         "ThresholdSettings": [
@@ -90,7 +95,7 @@
         ]
       },
       {
-        "_comment": "COMPREHENSIVE REFERENCE EXAMPLE: This scenario demonstrates ALL available options. It is NOT listed in TargetScenarios so it won't run by default. To enable it, add 'stress_test_scenario' to the TargetScenarios array.",
+        "_comment": "COMPREHENSIVE REFERENCE EXAMPLE: This scenario demonstrates ALL available options including data source configuration. It is NOT listed in TargetScenarios so it won't run by default. To enable it, add 'stress_test_scenario' to the TargetScenarios array.",
 
         "ScenarioName": "stress_test_scenario",
         "WarmUpDuration": "00:00:10",
@@ -109,7 +114,7 @@
 
         "CustomSettings": {
           "HttpMethod": "GET",
-          "Url": "https://jsonplaceholder.typicode.com/posts/1",
+          "Url": "https://jsonplaceholder.typicode.com/posts/{PostId}",
           "StepName": "stress_test_get_post",
           "ExpectedStatusCode": 200,
           "TimeoutMs": 5000,
@@ -117,7 +122,20 @@
             "Accept": "application/json",
             "X-Custom-TraceId": "nbomber-stress-test",
             "X-Request-Priority": "high"
-          }
+          },
+
+          "_comment_datasource": "DataSource is OPTIONAL. Omit it entirely for static requests. Examples of all three source types are shown below.",
+
+          "_comment_csv_example": "CSV Example: reads from a CSV file. The first row must be headers. Use {ColumnName} placeholders in Url, Headers, or JsonBody.",
+          "DataSource": {
+            "Type": "CSV",
+            "FilePath": "test-data.csv",
+            "FeedStrategy": "Random"
+          },
+
+          "_comment_db_example": "Database Example (replace the CSV DataSource above with this block): { \"Type\": \"Database\", \"ProviderName\": \"SqlServer\", \"ConnectionString\": \"Server=localhost;Database=TestDb;Trusted_Connection=true;TrustServerCertificate=true;\", \"Query\": \"SELECT TOP 100 PostId, Title, Body FROM Posts\", \"FeedStrategy\": \"Circular\" }",
+
+          "_comment_feed_strategies": "FeedStrategy options: 'Random' = randomly pick a record per request (default), 'Circular' = loop sequentially through records restarting at the top, 'Constant' = each scenario copy gets one fixed record"
         },
 
         "ThresholdSettings": [

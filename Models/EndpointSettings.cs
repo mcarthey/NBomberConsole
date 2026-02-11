@@ -33,4 +33,11 @@ public sealed class EndpointSettings
     /// Default: 30000 (30 seconds).
     /// </summary>
     public int TimeoutMs { get; set; } = 30000;
+
+    /// <summary>
+    /// Optional data source configuration for data-driven testing.
+    /// When configured, placeholder tokens like {ColumnName} in the URL, headers,
+    /// and JSON body are replaced with values from the data source on each request.
+    /// </summary>
+    public DataSourceSettings? DataSource { get; set; }
 }
