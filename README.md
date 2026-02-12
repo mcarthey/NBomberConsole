@@ -395,6 +395,136 @@ Control which scenarios execute via the `TargetScenarios` array in config. For e
 "TargetScenarios": [ "get_scenario" ]
 ```
 
+## Multi-Step Scenarios
+
+The config engine handles single-step HTTP scenarios (one request per iteration). For workflows that chain multiple HTTP calls — such as authenticating before each request, or creating a resource then reading it back — you'll need to write a custom scenario in C#.
+
+NBomber provides three mechanisms for sharing state between steps:
+
+| Mechanism | Scope | Use Case |
+|-----------|-------|----------|
+| `context.Data` | Single iteration (cleared after each) | Pass resource ID from step 1 to step 2 |
+| `context.ScenarioInstanceData` | All iterations for one virtual user | Cache an auth token across requests |
+| `Step.Run()` | Per step | Each step gets independent metrics in reports |
+
+### Example 1: Auth Token Flow
+
+POST for a token once, cache it in `ScenarioInstanceData`, then use it on every subsequent GET. The token persists across iterations so you aren't re-authenticating on every request.
+
+```csharp
+// In Program.cs — add alongside the config-driven scenarios
+var authScenario = Scenario.Create("auth_api_scenario", async context =>
+{
+    var httpClient = Http.CreateDefaultClient();
+
+    // Step 1: Get auth token (only if not cached or expired)
+    if (!context.ScenarioInstanceData.ContainsKey("auth_token"))
+    {
+        var authStep = await Step.Run("get_auth_token", context, async () =>
+        {
+            var request = Http.CreateRequest("POST", "https://auth.example.com/token")
+                .WithBody(new StringContent(
+                    """{"client_id": "my-app", "client_secret": "secret"}""",
+                    Encoding.UTF8, "application/json"));
+
+            var response = await Http.Send(httpClient, request);
+            var body = await response.Payload.Value.Content.ReadAsStringAsync();
+            var json = JsonDocument.Parse(body);
+            var token = json.RootElement.GetProperty("access_token").GetString()!;
+
+            // Cache the token for subsequent iterations
+            context.ScenarioInstanceData["auth_token"] = token;
+
+            return Response.Ok(statusCode: response.StatusCode, sizeBytes: response.SizeBytes);
+        });
+
+        if (authStep.IsError) return authStep;
+    }
+
+    // Step 2: Call the protected API with the cached token
+    var token = (string)context.ScenarioInstanceData["auth_token"];
+    var apiStep = await Step.Run("get_protected_data", context, async () =>
+    {
+        var request = Http.CreateRequest("GET", "https://api.example.com/data")
+            .WithHeader("Authorization", $"Bearer {token}");
+
+        var response = await Http.Send(httpClient, request);
+        return Response.Ok(statusCode: response.StatusCode, sizeBytes: response.SizeBytes);
+    });
+
+    return apiStep;
+});
+
+// Register alongside config-driven scenarios
+NBomberRunner
+    .RegisterScenarios(scenarios.Append(authScenario).ToArray())
+    // ... rest of runner config
+```
+
+### Example 2: CRUD Chain (Create → Read)
+
+POST to create a resource, extract the ID from the response, then GET to read it back. Uses `context.Data` which resets each iteration, so every cycle creates a new resource.
+
+```csharp
+var crudScenario = Scenario.Create("crud_chain_scenario", async context =>
+{
+    var httpClient = Http.CreateDefaultClient();
+
+    // Step 1: Create a resource
+    var createStep = await Step.Run("create_post", context, async () =>
+    {
+        var request = Http.CreateRequest("POST", "https://jsonplaceholder.typicode.com/posts")
+            .WithHeader("Accept", "application/json")
+            .WithBody(new StringContent(
+                """{"title": "Load Test Post", "body": "Created by NBomber", "userId": 1}""",
+                Encoding.UTF8, "application/json"));
+
+        var response = await Http.Send(httpClient, request);
+        var body = await response.Payload.Value.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(body);
+        var postId = json.RootElement.GetProperty("id").GetInt32();
+
+        // Store the created ID for the next step (cleared each iteration)
+        context.Data["post_id"] = postId;
+
+        return Response.Ok(statusCode: response.StatusCode, sizeBytes: response.SizeBytes);
+    });
+
+    if (createStep.IsError) return createStep;
+
+    // Step 2: Read back the created resource
+    var postId = (int)context.Data["post_id"];
+    var readStep = await Step.Run("read_post", context, async () =>
+    {
+        var request = Http.CreateRequest("GET", $"https://jsonplaceholder.typicode.com/posts/{postId}")
+            .WithHeader("Accept", "application/json");
+
+        var response = await Http.Send(httpClient, request);
+        return Response.Ok(statusCode: response.StatusCode, sizeBytes: response.SizeBytes);
+    });
+
+    return readStep;
+});
+```
+
+### Registering Custom Scenarios
+
+Custom multi-step scenarios coexist with config-driven ones. Add them to the `RegisterScenarios` call and configure their load profile in `nbomber-config.json` like any other scenario:
+
+```json
+{
+  "ScenarioName": "auth_api_scenario",
+  "WarmUpDuration": "00:00:05",
+  "LoadSimulationsSettings": [
+    { "Inject": [ 10, "00:00:01", "00:01:00" ] }
+  ]
+}
+```
+
+Each `Step.Run()` appears as a separate row in the HTML report with its own RPS, latency percentiles, and success/fail counts — so you can see exactly which step is the bottleneck.
+
+> **When to use config-driven vs. code:** If the scenario is a single HTTP request (even with data feeds, headers, and auth tokens passed as static config values), use the config engine. If the scenario requires reading a response body and using values from it in a subsequent request, write a custom scenario in C#.
+
 ## Plugins
 
 Two worker plugins are included for additional metrics:
