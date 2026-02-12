@@ -28,6 +28,10 @@ reports/
 ## Serilog logs (generated output)
 logs/
 
+## Claude Code
+.claude/
+
 ## OS generated
 .DS_Store
 Thumbs.db
+nul
