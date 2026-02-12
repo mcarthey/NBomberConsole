@@ -293,7 +293,7 @@ class Program
     /// Replaces {ColumnName} placeholder tokens in a template string with values
     /// from a data record. Matching is case-insensitive.
     /// </summary>
-    private static string ApplySubstitutions(string template, Dictionary<string, string> data)
+    internal static string ApplySubstitutions(string template, Dictionary<string, string> data)
     {
         var result = template;
         foreach (var kvp in data)
