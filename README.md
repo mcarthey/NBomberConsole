@@ -25,6 +25,82 @@ Each scenario in the config has a `CustomSettings` block that defines:
 | `StepName` | Optional friendly name for reports | `"create_user"` |
 | `ExpectedStatusCode` | Optional validation | `200`, `201` |
 | `TimeoutMs` | Request timeout in milliseconds (default: 30000) | `5000`, `60000` |
+| `DataSource` | Optional data source for data-driven testing (see below) | `{ "Type": "CSV", ... }` |
+
+### Data-Driven Testing
+
+Use `DataSource` in `CustomSettings` to drive requests with dynamic data from CSV files or databases. Placeholder tokens like `{ColumnName}` in the URL, headers, and JSON body are replaced with values from the data source on each request.
+
+#### CSV Data Source
+
+Create a CSV file (e.g., `test-data.csv`) with a header row. Column names become placeholder tokens:
+
+```csv
+PostId,Title,UserId
+1,First Post,1
+2,Second Post,2
+3,Third Post,1
+```
+
+Configure the scenario to use it:
+
+```json
+"CustomSettings": {
+  "HttpMethod": "GET",
+  "Url": "https://api.example.com/posts/{PostId}",
+  "ExpectedStatusCode": 200,
+  "DataSource": {
+    "Type": "CSV",
+    "FilePath": "test-data.csv",
+    "FeedStrategy": "Random"
+  }
+}
+```
+
+Each request will substitute `{PostId}` with a value from the CSV based on the feed strategy.
+
+#### Database Data Source
+
+Query a database to load test data. Column names from the result set become placeholder tokens:
+
+```json
+"CustomSettings": {
+  "HttpMethod": "GET",
+  "Url": "https://api.example.com/users/{UserId}",
+  "Headers": {
+    "X-Tenant": "{TenantId}"
+  },
+  "ExpectedStatusCode": 200,
+  "DataSource": {
+    "Type": "Database",
+    "ProviderName": "SqlServer",
+    "ConnectionString": "Server=localhost;Database=TestDb;Trusted_Connection=true;TrustServerCertificate=true;",
+    "Query": "SELECT TOP 100 UserId, TenantId FROM Users WHERE IsActive = 1",
+    "FeedStrategy": "Circular"
+  }
+}
+```
+
+#### Feed Strategies
+
+| Strategy | Behavior |
+|----------|----------|
+| `Random` | Randomly picks a record per request (default) |
+| `Circular` | Loops sequentially through records, restarting at the top |
+| `Constant` | Each scenario copy (virtual user) gets one fixed record for the entire test |
+
+#### Placeholders
+
+Placeholders use `{ColumnName}` syntax and can appear in:
+- **URL** — `"https://api.example.com/posts/{PostId}"`
+- **Headers** — `"Authorization": "Bearer {Token}"`
+- **JSON body** — `{ "userId": "{UserId}", "title": "{Title}" }`
+
+Matching is case-insensitive. If a placeholder has no matching column, it is left as-is.
+
+#### No Data Source (Static Requests)
+
+If `DataSource` is omitted, the scenario sends identical requests using the literal URL, headers, and body from the config — the original behavior.
 
 ## Configuration Guide
 
@@ -304,16 +380,12 @@ Each threshold entry can also include:
 
 ### Adding a New Scenario
 
-1. In `Program.cs`, add one line:
-   ```csharp
-   var myScenario = BuildScenario("my_scenario", httpClient);
-   ```
-2. Register it in the `RegisterScenarios` call:
-   ```csharp
-   .RegisterScenarios(getScenario, postScenario, myScenario)
-   ```
-3. Add the matching config block in `nbomber-config.json` under `ScenariosSettings`
-4. Add `"my_scenario"` to the `TargetScenarios` array
+Scenarios are auto-discovered from `nbomber-config.json` — no C# code changes required.
+
+1. Add a new config block under `ScenariosSettings` in `nbomber-config.json`
+2. Add the scenario name to the `TargetScenarios` array
+
+> **Tip:** Copy the `stress_test_scenario` block from the config as a starting template — it demonstrates all available options including data sources, thresholds, and load patterns.
 
 ### Running a Subset of Scenarios
 

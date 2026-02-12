@@ -1,10 +1,12 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using NBomber.CSharp;
 using NBomber.Contracts;
 using NBomber.Contracts.Stats;
 using NBomber.Data;
+using NBomber.Data.CSharp;
 using NBomber.Http;
 using NBomber.Http.CSharp;
 using NBomber.Plugins.Network.Ping;
