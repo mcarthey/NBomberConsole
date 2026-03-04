@@ -24,7 +24,7 @@ class Program
 
         // Shared HttpClient with high connection limit for load testing.
         // NBomber best practice: reuse a single instance across all scenarios.
-        var httpClient = Http.CreateDefaultClient(maxConnectionsPerServer: 5000);
+        var httpClient = Http.CreateDefaultClient(maxConnectionsPerServer: 500);
 
         // Dynamically discover all scenarios defined in nbomber-config.json.
         // Users add, remove, or rename scenarios entirely through the JSON config
@@ -54,7 +54,7 @@ class Program
 
                 // HttpMetricsPlugin: monitors HTTP connection pool activity (active/idle
                 // connections over time). Surfaces connection exhaustion under heavy load.
-                new HttpMetricsPlugin(new[] { NBomber.Http.HttpVersion.Version1 })
+                new HttpMetricsPlugin(new[] { NBomber.Http.HttpVersion.Version1, NBomber.Http.HttpVersion.Version2 })
             )
             .WithMinimumLogLevel(LogEventLevel.Debug)
             .Run();
@@ -116,13 +116,33 @@ class Program
                 // with optional placeholder substitution from data feed
                 if (cfg.Headers is not null)
                 {
+                    string? baseContentTracking = null;
+
                     foreach (var header in cfg.Headers)
                     {
                         var value = dataRecord != null
                             ? ApplySubstitutions(header.Value, dataRecord)
                             : header.Value;
                         request = request.WithHeader(header.Key, value);
+
+                        if (header.Key.Equals("Content-Tracking-Id", StringComparison.OrdinalIgnoreCase))
+                            baseContentTracking = value;
                     }
+
+                    if (baseContentTracking is not null)
+                    {
+                        var contentTrace = $"{baseContentTracking}-{context.InvocationNumber}-{Guid.NewGuid():N}";
+                        request = request.WithHeader("Content-Tracking-Id", contentTrace);
+                        context.Logger.Debug("Content-Tracking-Id={TraceId} Scenario={Scenario} Invocation={Invocation}",
+                            contentTrace, scenarioName, context.InvocationNumber);
+                    }
+
+                    // Always attach a single, unambiguous unique header for correlation at the proxy/app
+                    // This header contains invocation number + GUID and is logged locally for ops to grep.
+                    var uniqueId = $"{context.InvocationNumber}-{Guid.NewGuid():N}";
+                    request = request.WithHeader("X-NBomber-Unique", uniqueId);
+                    context.Logger.Debug("X-NBomber-Unique={UniqueId} Scenario={Scenario} Invocation={Invocation}",
+                        uniqueId, scenarioName, context.InvocationNumber);
                 }
 
                 // Attach JSON body for POST/PUT/PATCH requests
