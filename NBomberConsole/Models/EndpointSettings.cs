@@ -40,4 +40,9 @@ public sealed class EndpointSettings
     /// and JSON body are replaced with values from the data source on each request.
     /// </summary>
     public DataSourceSettings? DataSource { get; set; }
+
+    /// <summary>
+    /// Optional response handler to extract data and condition chained requests.
+    /// </summary>
+    public ResponseHandlerSettings? ResponseHandler { get; set; }
 }

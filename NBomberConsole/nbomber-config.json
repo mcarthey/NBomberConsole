@@ -60,6 +60,19 @@
         ]
       },      
       {
+        "ScenarioName": "paginated_get_scenario",
+        "CustomSettings": {
+          "HttpMethod": "GET",
+          "Url": "https://api.example.com/items?offset={Offset}&limit=10",
+          "ResponseHandler": {
+            "ResponseTypeName": "MyApp.Models.PaginatedResponse`1[[MyApp.Models.Item]], MyApp",
+            "ExtractDataPath": "Offset",
+            "StoreAsField": "NextOffset",
+            "ContinueCondition": "HasNextPage == true"
+          }
+        }
+      },
+      {
         "ScenarioName": "get_scenario",
         "WarmUpDuration": "00:00:05",
         "LoadSimulationsSettings": [

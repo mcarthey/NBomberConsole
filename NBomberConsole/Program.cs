@@ -12,6 +12,7 @@ using NBomber.Http.CSharp;
 using NBomber.Plugins.Network.Ping;
 using Serilog.Events;
 using NBomberConsole.Models;
+using NBomberConsole.Services;
 
 namespace NBomberConsole;
 
@@ -187,6 +188,34 @@ class Program
                                 message: $"Expected status {cfg.ExpectedStatusCode}, got {actualCode}",
                                 sizeBytes: response.SizeBytes
                             );
+                        }
+                    }
+
+                    // Extract response data if handler is configured
+                    var responseData = new Dictionary<string, string>();
+                    if (cfg.ResponseHandler is not null)
+                    {
+                        responseData = await ResponseHandlerService.ExtractResponseData(
+                            response.Body, cfg.ResponseHandler);
+
+                        // Evaluate continue condition
+                        var shouldContinue = ResponseHandlerService.EvaluateCondition(
+                            cfg.ResponseHandler.ContinueCondition, responseData);
+
+                        if (!shouldContinue)
+                        {
+                            context.Logger.Information(
+                                "Response handler condition not met. Stopping pagination. " +
+                                "Scenario={Scenario} Invocation={Invocation}",
+                                scenarioName, context.InvocationNumber);
+                        }
+
+                        // Log extracted fields for debugging
+                        foreach (var kvp in responseData)
+                        {
+                            context.Logger.Debug(
+                                "Extracted field Scenario={Scenario} Field={Field} Value={Value}",
+                                scenarioName, kvp.Key, kvp.Value);
                         }
                     }
 
